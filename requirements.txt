@@ -5,3 +5,14 @@ torch
 opencv-python
 pillow
 python-multipart
+numpy 
+pandas 
+starlette
+tensorflow 
+pytest
+pytest-cov 
+xgboost 
+shap 
+scikit-learn 
+keras 
+cryptography
