@@ -186,16 +186,20 @@ Visit `http://localhost:8000/docs` for interactive Swagger UI. For production, u
 
 ```powershell
 $imgPath = "examples/test.jpg"
-Invoke-RestMethod -Uri "http://localhost:8000/api/v1/infer" -Method Post -InFile $imgPath -ContentType "multipart/form-data"
+Invoke-RestMethod -Uri "http://localhost:8000/api/v1/detect" `
+  -Method Post -InFile $imgPath -ContentType "multipart/form-data" `
+  -Headers @{ "X-API-Key" = "<YOUR_API_KEY>" }
 ```
 
 Or with curl:
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/infer" -F "file=@examples/test.jpg" -H "x-api-key: <YOUR_API_KEY>"
+curl -X POST "http://localhost:8000/api/v1/detect" \
+  -F "file=@examples/test.jpg" \
+  -H "X-API-Key: <YOUR_API_KEY>"
 ```
 
-Responses typically include: detection classes, confidence scores, bounding boxes and optional metadata.
+Responses include: detection labels, confidence scores, bounding boxes, and a descriptive caption.
 
 ---
 
@@ -204,14 +208,13 @@ Responses typically include: detection classes, confidence scores, bounding boxe
 - Interactive docs: `GET /docs` (Swagger UI)  
 - OpenAPI JSON: `GET /openapi.json`  
 
-Typical endpoints (examples — confirm exact routes in `app/`):
+Endpoints:
 
-- `POST /api/v1/infer` — send an image/frame for inference  
-- `GET /api/v1/models` — list available models and versions  
-- `POST /api/v1/keys` — create API key (admin)  
-- `POST /api/v1/rotate-keys` — trigger rotation script (admin)  
+- `POST /api/v1/detect` — upload an image for threat detection and captioning
+- `GET /health` — health check (no auth required)
+- `GET /docs` — interactive Swagger UI
 
-Check the code in `app/` for exact parameter names and example payloads.
+API key rotation is handled via the CLI script `scripts/rotate_api_keys.py`.
 
 ---
 
@@ -228,18 +231,26 @@ Check the code in `app/` for exact parameter names and example payloads.
 
 ## 🗂️ Project Structure
 
-A conventional structure (your repo may vary):
-
 ```
 VisioGuardAI/
-├─ app/                    # FastAPI application (routes, models, services)
-│  ├─ main.py
-│  ├─ api/
+├─ app/
+│  ├─ main.py              # FastAPI entry point, lifespan, middleware
+│  ├─ config.py            # Pydantic Settings (centralized config)
+│  ├─ exceptions.py        # Custom exception hierarchy
+│  ├─ middleware.py         # Request ID & timing middleware
+│  ├─ routes/
+│  │  └─ detection.py      # POST /api/v1/detect endpoint
+│  ├─ security/
+│  │  ├─ auth.py           # API key validation (DB + env fallback)
+│  │  └─ rate_limit.py     # Sliding-window rate limiter
 │  ├─ services/
-│  └─ settings.py
-├─ scripts/                # Helper scripts (rotate_api_keys.py, maintenance)
-├─ models/                 # Binary model artifacts (not usually checked in)
-├─ data/                   # Example data, small sample inputs
+│  │  ├─ detector.py       # DETR object detection
+│  │  └─ captioner.py      # BLIP image captioning
+│  └─ utils/
+│     └─ video.py          # Video frame extraction
+├─ scripts/
+│  └─ rotate_api_keys.py   # API key rotation CLI
+├─ tests/                  # pytest test suite
 ├─ Dockerfile
 ├─ requirements.txt
 ├─ README.md / README.txt
